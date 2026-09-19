@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clario_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clario
+      POSTGRES_PASSWORD: clario
+      POSTGRES_DB: clario_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clario"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: clario_backend
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql://clario:clario@postgres:5432/clario_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: clario_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

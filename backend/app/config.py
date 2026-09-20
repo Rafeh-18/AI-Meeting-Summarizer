@@ -78,6 +78,6 @@ class Config:
 
 
     CORS_ORIGIN = os.getenv(
-        "FRONTEND_ORIGIN",
+        "CORS_ORIGIN",
         "http://localhost:5173"
     )

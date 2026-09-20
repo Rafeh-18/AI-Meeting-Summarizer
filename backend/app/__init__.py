@@ -4,7 +4,7 @@ from app.extensions import db, jwt, bcrypt, cors
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-
+from app.models import user, meeting, chat_message
 
 # Load .env from project root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

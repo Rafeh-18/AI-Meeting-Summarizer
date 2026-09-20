@@ -10,8 +10,8 @@ function formatTimer(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function UploadModal({ onClose, onUploaded }) {
-  const [tab, setTab] = useState('upload')
+export default function UploadModal({ onClose, onUploaded, initialTab = 'upload' }) {
+  const [tab, setTab] = useState(initialTab)
   const [title, setTitle] = useState('')
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -162,8 +162,8 @@ export default function UploadModal({ onClose, onUploaded }) {
 
         {error && (
           <div style={{
-            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-            color: '#f87171', borderRadius: 8, padding: '10px 14px',
+            background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.25)',
+            color: 'var(--red)', borderRadius: 8, padding: '10px 14px',
             fontSize: '0.875rem', margin: '0 0 16px',
           }}>
             {error}
@@ -196,7 +196,7 @@ export default function UploadModal({ onClose, onUploaded }) {
               style={{
                 cursor: 'pointer',
                 ...(isDragging
-                  ? { borderColor: 'var(--accent-bright)', background: 'rgba(99,102,241,0.05)' }
+                  ? { borderColor: 'var(--accent)', background: 'var(--accent-glow)' }
                   : {}),
               }}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
@@ -216,7 +216,7 @@ export default function UploadModal({ onClose, onUploaded }) {
               ) : (
                 <>
                   <h3>Drop your file here</h3>
-                  <p>or <span style={{ color: 'var(--accent-bright)', fontWeight: 500 }}>browse to choose</span> from your computer</p>
+                  <p>or <span style={{ color: 'var(--accent-dark)', fontWeight: 600 }}>browse to choose</span> from your computer</p>
                 </>
               )}
               <div className="dropzone-formats">
@@ -236,7 +236,6 @@ export default function UploadModal({ onClose, onUploaded }) {
                   <button
                     className="record-pulse-btn"
                     onClick={isRecording ? stopRecording : startRecording}
-                    style={isRecording ? { background: 'var(--red, #ef4444)' } : undefined}
                   >
                     {isRecording ? <Square size={24} /> : <Mic size={28} />}
                   </button>

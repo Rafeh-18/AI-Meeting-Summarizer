@@ -8,6 +8,8 @@ export const meetingService = {
   get: (id) => api.get(`/meetings/${id}`).then((r) => r.data.meeting),
   analytics: () => api.get('/meetings/analytics').then((r) => r.data.analytics),
   upload: (formData) => api.post('/meetings/upload', formData).then((r) => r.data.meeting),
+  getChatHistory: (id) => api.get(`/meetings/${id}/chat`).then((r) => r.data.messages),
+sendChatMessage: (id, message) => api.post(`/meetings/${id}/chat`, { message }).then((r) => r.data),
   process: (id) => api.post(`/meetings/${id}/process`).then((r) => r.data.meeting),
   downloadPdf: (id, filename) =>
     api.get(`/meetings/${id}/pdf`, { responseType: 'blob' }).then((r) => {

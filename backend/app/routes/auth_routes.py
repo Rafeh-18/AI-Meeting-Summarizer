@@ -13,7 +13,7 @@ from app.models.user import User
 
 auth_bp = Blueprint("auth", __name__)
 
-from app.controllers.auth_controller import update_profile, change_password  # add to existing import line
+from app.controllers.auth_controller import update_profile, change_password 
 
 
 @auth_bp.put("/me")

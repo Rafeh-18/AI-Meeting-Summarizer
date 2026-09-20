@@ -1,38 +1,9 @@
-"""
-backend/ai/pdf/report_generator.py
-
-Generates a professional PDF report for a processed meeting.
-
-EXPECTED INPUT SHAPE
----------------------
-Matches Meeting.to_dict() from app/models/meeting.py exactly, so you can
-call this straight off a loaded row with no reshaping:
-
-    from app.models.meeting import Meeting
-    from ai.pdf import generate_meeting_report
-
-    meeting = Meeting.query.get(meeting_id)
-    generate_meeting_report(meeting.to_dict(), "/path/to/output.pdf")
-
-Concretely, the dict is expected to have:
-    title, status, duration_seconds, participant_count, action_item_count,
-    summary_text, key_points (list[str]), decisions (list[str]),
-    risks (list[str]),
-    action_items (list[{"text": str, "owner": str|None, "due_date": str|None}]),
-    meeting_date (ISO string), created_at (ISO string), transcript_text (str)
-
-All fields are read defensively with .get(), so a partially-processed
-meeting (e.g. status != "processed") won't crash the renderer — sections
-just show "None identified." placeholders.
-
-Install: pip install reportlab
-(reportlab is pure-Python-friendly and has no known Python 3.14 wheel
-issues, unlike psycopg2/torch — safe to add without a version pin fight.)
-"""
 
 from __future__ import annotations
 
 import os
+import re
+import unicodedata
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from xml.sax.saxutils import escape as _xml_escape
@@ -71,35 +42,58 @@ MARGIN = 0.75 * inch
 # Text sanitization
 # ---------------------------------------------------------------------------
 # ReportLab's base-14 fonts (Helvetica) only cover WinAnsi/Latin-1 glyphs, so
-# stray Unicode punctuation (smart quotes, en/em dashes, ellipsis, emoji like
-# the warning sign) renders as a "tofu" box (■). On top of that, Paragraph()
-# parses a small XML-like markup, so a raw "&" (e.g. "MD&A") gets misread as
-# the start of an entity and comes out mangled ("MD&A;"). This normalizes
-# and escapes any LLM/user-supplied text before it reaches a Paragraph.
+# stray Unicode punctuation (smart quotes, dashes, ellipsis, emoji like the
+# warning sign) renders as a "tofu" box (■) or — if dropped naively — can
+# silently delete the character and glue two words together ("election-day"
+# -> "electionday"). On top of that, Paragraph() parses a small XML-like
+# markup, so a raw "&" (e.g. "MD&A") gets misread as the start of an entity
+# and comes out mangled ("MD&A;"). This normalizes and escapes any LLM/user
+# text before it reaches a Paragraph, using Unicode category checks so it
+# isn't limited to one hand-picked list of characters.
 _UNICODE_REPLACEMENTS = {
-    "\u2013": "-",    # – en dash
-    "\u2014": "-",    # — em dash
-    "\u2018": "'",    # ' left single quote
-    "\u2019": "'",    # ' right single quote
-    "\u201c": '"',    # " left double quote
-    "\u201d": '"',    # " right double quote
     "\u2026": "...",  # … ellipsis
-    "\u2022": "-",    # • bullet
     "\u26a0": "[!]",  # ⚠ warning sign
     "\ufe0f": "",     # emoji variation selector
-    "\u00a0": " ",    # non-breaking space
+    "\u200b": "",     # zero-width space
+    "\u200c": "",
+    "\u200d": "",
 }
 
 
 def _sanitize(text: Any) -> str:
-    """Make arbitrary text safe to pass into a ReportLab Paragraph."""
+    """Make arbitrary text safe to pass into a ReportLab Paragraph, without
+    ever silently deleting a character in a way that merges two words."""
     if text is None:
         return ""
     text = str(text)
-    for bad, good in _UNICODE_REPLACEMENTS.items():
-        text = text.replace(bad, good)
-    # Drop anything else outside Latin-1 rather than let it render as a box.
-    text = text.encode("latin-1", errors="ignore").decode("latin-1")
+
+    out = []
+    for ch in text:
+        if ch in _UNICODE_REPLACEMENTS:
+            out.append(_UNICODE_REPLACEMENTS[ch])
+        elif ord(ch) < 256:
+            # Plain ASCII/Latin-1 — the base-14 fonts render these directly.
+            out.append(ch)
+        else:
+            category = unicodedata.category(ch)
+            if category == "Pd":  # any dash/hyphen variant (en, em, non-
+                out.append("-")   # breaking hyphen, figure dash, etc.)
+            elif category in ("Pi", "Pf"):  # any opening/closing quote mark
+                out.append("'")
+            elif category.startswith("Z"):  # any unusual space/separator
+                out.append(" ")
+            elif category == "Pc" or category.startswith("P"):
+                # other punctuation-ish symbol we don't specifically know —
+                # a safe generic dash keeps word boundaries intact.
+                out.append("-")
+            else:
+                # Unknown letter/symbol outside Latin-1 (rare emoji, other
+                # scripts): drop the glyph but keep a space so words don't
+                # collide, rather than crash or render a missing-glyph box.
+                out.append(" ")
+    text = "".join(out)
+    text = re.sub(r" {2,}", " ", text)
+
     # Escape & < > so Paragraph's mini-markup parser doesn't choke on plain
     # text like "MD&A" or a stray "<" in the transcript.
     return _xml_escape(text)

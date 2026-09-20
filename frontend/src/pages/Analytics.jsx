@@ -3,25 +3,37 @@ import Sidebar from '../components/Sidebar'
 import { meetingService } from '../services/meetingService'
 import { ChevronRight, BarChart2 } from 'lucide-react'
 
+const TRACK_HEIGHT = 120 // px — the actual drawable bar area
+
 function WeeklyBarChart({ weekly, metricKey, color, unit }) {
   const max = Math.max(1, ...weekly.map((w) => w[metricKey]))
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 160, padding: '16px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, padding: '16px 0' }}>
       {weekly.map((w) => {
-        const heightPct = (w[metricKey] / max) * 100
+        const value = w[metricKey]
+        // Real pixel height, not a percentage — percentages need a parent
+        // with an explicit height to resolve against, which this didn't have.
+        const barHeight = Math.max((value / max) * TRACK_HEIGHT, 4)
         return (
           <div key={w.week_label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>
-              {w[metricKey]}{unit}
+              {value}{unit}
             </div>
             <div style={{
               width: '100%',
-              height: `${Math.max(heightPct, 3)}%`,
-              background: color,
-              borderRadius: 4,
-              minHeight: 4,
-            }} />
+              height: TRACK_HEIGHT,
+              display: 'flex',
+              alignItems: 'flex-end',
+            }}>
+              <div style={{
+                width: '100%',
+                height: barHeight,
+                background: color,
+                borderRadius: 4,
+                transition: 'height 0.3s ease',
+              }} />
+            </div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>{w.week_label}</div>
           </div>
         )
@@ -35,7 +47,7 @@ function StatusBar({ breakdown }) {
   const segments = [
     { key: 'processed', label: 'Processed', color: '#4ade80' },
     { key: 'processing', label: 'Processing', color: '#facc15' },
-    { key: 'uploaded', label: 'Uploaded (not yet processed)', color: 'var(--accent, #6366F1)' },
+    { key: 'uploaded', label: 'Uploaded (not yet processed)', color: 'var(--accent, #FF6B6B)' },
   ]
 
   return (
@@ -97,7 +109,7 @@ export default function Analytics() {
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', borderRadius: 8, padding: '10px 14px', fontSize: '0.875rem', marginBottom: 16 }}>
+            <div style={{ background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.25)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: '0.875rem', marginBottom: 16 }}>
               {error}
             </div>
           )}
@@ -131,7 +143,7 @@ export default function Analytics() {
 
               <div className="stat-card" style={{ marginBottom: 24 }}>
                 <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>Meetings per week</h2>
-                <WeeklyBarChart weekly={data.weekly} metricKey="meetings_count" color="var(--accent, #6366F1)" unit="" />
+                <WeeklyBarChart weekly={data.weekly} metricKey="meetings_count" color="var(--accent, #FF6B6B)" unit="" />
               </div>
 
               <div className="stat-card" style={{ marginBottom: 24 }}>

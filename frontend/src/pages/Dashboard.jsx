@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
-import UploadModal from '../components/UploadModal'
 import { useAuth } from '../context/AuthContext'
 import { meetingService } from '../services/meetingService'
 import { formatDuration, formatMeetingDate } from '../utils/format'
 import {
-  Plus, Search, Bell, ChevronRight,
+  Search, Bell, ChevronRight,
   Video, Clock, CheckSquare, FileDown,
-  MoreHorizontal, Download, Eye, Trash2,
-  Upload, Mic,
+  Download, Eye, Trash2,
+  Mic, Loader2,
 } from 'lucide-react'
 
 function StatusBadge({ status }) {
@@ -22,11 +21,12 @@ function StatusBadge({ status }) {
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [uploadOpen, setUploadOpen] = useState(false)
+  const navigate = useNavigate()
   const [meetings, setMeetings] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [downloadingId, setDownloadingId] = useState(null)
 
   async function loadDashboard() {
     setLoading(true)
@@ -55,6 +55,19 @@ export default function Dashboard() {
       setMeetings((prev) => prev.filter((m) => m.id !== id))
     } catch (err) {
       setError('Could not delete that meeting.')
+    }
+  }
+
+  async function handleDownload(m) {
+    setDownloadingId(m.id)
+    setError('')
+    try {
+      await meetingService.downloadPdf(m.id, `${m.title}.pdf`)
+      setMeetings((prev) => prev.map((x) => (x.id === m.id ? { ...x, has_pdf: true } : x)))
+    } catch {
+      setError('Could not generate the PDF. Please try again.')
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -92,13 +105,6 @@ export default function Dashboard() {
               <Bell size={17} />
               <span className="notif-dot" />
             </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => setUploadOpen(true)}
-            >
-              <Plus size={15} />
-              New meeting
-            </button>
           </div>
         </header>
 
@@ -109,19 +115,12 @@ export default function Dashboard() {
               <h1>Hello, {firstName} 👋</h1>
               <p>Here's what happened across your meetings this week.</p>
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={() => setUploadOpen(true)}
-            >
-              <Upload size={16} />
-              Upload meeting
-            </button>
           </div>
 
           {error && (
             <div style={{
-              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-              color: '#f87171', borderRadius: 8, padding: '10px 14px',
+              background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.25)',
+              color: 'var(--red)', borderRadius: 8, padding: '10px 14px',
               fontSize: '0.875rem', marginBottom: 16,
             }}>
               {error}
@@ -167,12 +166,9 @@ export default function Dashboard() {
                       <div className="empty-icon"><Mic size={28} /></div>
                       <h3>No meetings yet</h3>
                       <p>Upload your first recording and Clario will take it from there.</p>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => setUploadOpen(true)}
-                      >
-                        <Plus size={15} /> Upload a meeting
-                      </button>
+                      <Link to="/new-meeting" className="btn btn-primary">
+                        Start your first meeting
+                      </Link>
                     </div>
                   ) : (
                     <table className="meetings-table">
@@ -203,7 +199,7 @@ export default function Dashboard() {
                             <td><StatusBadge status={m.status} /></td>
                             <td className="td-actions-count">
                               {m.action_item_count > 0 ? (
-                                <span style={{ color: 'var(--accent-bright)' }}>
+                                <span style={{ color: 'var(--accent-dark)' }}>
                                   {m.action_item_count} items
                                 </span>
                               ) : (
@@ -212,11 +208,22 @@ export default function Dashboard() {
                             </td>
                             <td>
                               <div className="td-row-actions">
-                                <button className="btn-icon" title="View">
+                                <button
+                                  className="btn-icon"
+                                  title="Open"
+                                  onClick={() => navigate(`/new-meeting/${m.id}`)}
+                                >
                                   <Eye size={15} />
                                 </button>
-                                <button className="btn-icon" title="Download PDF" disabled={!m.has_pdf}>
-                                  <Download size={15} />
+                                <button
+                                  className="btn-icon"
+                                  title="Download PDF"
+                                  disabled={m.status !== 'processed' || downloadingId === m.id}
+                                  onClick={() => handleDownload(m)}
+                                >
+                                  {downloadingId === m.id
+                                    ? <Loader2 size={15} className="spin" />
+                                    : <Download size={15} />}
                                 </button>
                                 <button className="btn-icon" title="Delete" onClick={() => handleDelete(m.id)}>
                                   <Trash2 size={15} />
@@ -230,25 +237,13 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {meetings.length > 0 && (
-                  <div style={{ textAlign: 'center', marginTop: 16 }}>
-                    <Link to="/meetings" className="btn btn-ghost btn-sm" style={{ gap: 6 }}>
-                      View all meetings <ChevronRight size={14} />
-                    </Link>
-                  </div>
-                )}
+             
               </section>
             </>
           )}
         </main>
       </div>
 
-      {uploadOpen && (
-        <UploadModal
-          onClose={() => setUploadOpen(false)}
-          onUploaded={() => loadDashboard()}  // in Meetings.jsx, use `load()` instead
-        />
-      )}
     </div>
   )
 }

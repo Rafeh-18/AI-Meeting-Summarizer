@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify, send_file
 from app.controllers.ai_controller import process_meeting, generate_report
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.models import user, meeting, chat_message
+from app.controllers.chat_controller import get_chat_history, send_chat_message
+ 
 from app.controllers.meetings_controller import (
     get_meetings_for_user,
     get_stats_for_user,
@@ -100,3 +103,23 @@ def download_report(meeting_id):
         download_name=f"meeting-{meeting_id}-report.pdf",
         mimetype="application/pdf",
     )
+
+@meetings_bp.get("/meetings/<int:meeting_id>/chat")
+@jwt_required()
+def chat_history(meeting_id):
+    user_id = int(get_jwt_identity())
+    messages, error, status = get_chat_history(user_id, meeting_id)
+    if error:
+        return jsonify(error), status
+    return jsonify({"messages": messages}), status
+ 
+ 
+@meetings_bp.post("/meetings/<int:meeting_id>/chat")
+@jwt_required()
+def chat_send(meeting_id):
+    user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+    result, error, status = send_chat_message(user_id, meeting_id, data.get("message", ""))
+    if error:
+        return jsonify(error), status
+    return jsonify(result), status

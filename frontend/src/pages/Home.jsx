@@ -175,7 +175,7 @@ export default function Home() {
 
       <footer className="footer">
         <div className="container footer-inner">
-          <p className="footer-copy">© 2025 Clario. MIT License.</p>
+          <p className="footer-copy">© 2026 Clario.</p>
           <nav className="footer-links">
             <a href="#">Privacy</a>
             <a href="#">Terms</a>

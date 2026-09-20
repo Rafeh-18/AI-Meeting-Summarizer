@@ -12,14 +12,14 @@ ENV_PATH = BASE_DIR / ".env"
 
 load_dotenv(ENV_PATH)
 
-print("CORS_ORIGIN:", app.config["CORS_ORIGIN"])
+
 def create_app():
 
     app = Flask(__name__)
 
     # Load config
     app.config.from_object(Config)
-
+    print("CORS_ORIGIN:", app.config["CORS_ORIGIN"])
     # Force Groq key into Flask config
     app.config["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 

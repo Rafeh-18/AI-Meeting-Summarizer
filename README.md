@@ -97,7 +97,7 @@ Each meeting produces a professional report containing:
 
 ### AI Layer
 - Faster-Whisper *(speech-to-text)*
-- OpenAI / Local LLM *(summarization)*
+- Groq / Local LLM *(summarization)*
 - Pyannote *(optional speaker diarization)*
 
 ### Database

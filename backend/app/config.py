@@ -66,7 +66,7 @@ class Config:
 
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
 
-    JWT_COOKIE_CSRF_PROTECT = True
+    JWT_COOKIE_CSRF_PROTECT = os.getenv("JWT_COOKIE_CSRF_PROTECT", "True") == "True"
 
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         hours=1

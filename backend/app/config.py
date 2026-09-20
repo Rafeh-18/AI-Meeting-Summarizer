@@ -64,7 +64,7 @@ class Config:
         os.getenv("FLASK_ENV") == "production"
     )
 
-    JWT_COOKIE_SAMESITE = "Lax"
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
 
     JWT_COOKIE_CSRF_PROTECT = True
 

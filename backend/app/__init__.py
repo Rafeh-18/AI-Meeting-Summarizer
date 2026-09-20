@@ -23,31 +23,22 @@ def create_app():
     # Force Groq key into Flask config
     app.config["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
-
-    print(
-        "ENV PATH:",
-        ENV_PATH
-    )
-
-    print(
-        "GROQ KEY LOADED:",
-        bool(app.config["GROQ_API_KEY"])
-    )
-
+    print("ENV PATH:", ENV_PATH)
+    print("GROQ KEY LOADED:", bool(app.config["GROQ_API_KEY"]))
 
     # Extensions
     db.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
 
+    # CORS
     cors.init_app(
         app,
         supports_credentials=True,
         origins=[
-            app.config["CORS_ORIGIN"]
+            app.config["CORS_ORIGIN"],
         ]
     )
-
 
     # Routes
     from app.routes.auth_routes import auth_bp
@@ -56,25 +47,21 @@ def create_app():
         url_prefix="/api"
     )
 
-
     from app.routes.meetings_routes import meetings_bp
     app.register_blueprint(
         meetings_bp,
         url_prefix="/api"
     )
 
-
     # Database
     with app.app_context():
         from app.models import user, meeting
         db.create_all()
-
 
     @app.errorhandler(404)
     def not_found(e):
         return {
             "error": "Not found"
         }, 404
-
 
     return app

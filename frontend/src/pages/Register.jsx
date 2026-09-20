@@ -97,7 +97,7 @@ export default function Register() {
                 type="text"
                 name="full_name"
                 className="form-input"
-                placeholder="Jane Doe"
+                placeholder="Enter your name"
                 autoComplete="name"
                 value={form.full_name}
                 onChange={handleChange}
@@ -114,7 +114,7 @@ export default function Register() {
                 type="email"
                 name="email"
                 className="form-input"
-                placeholder="jane@company.com"
+                placeholder="Enter your email"
                 autoComplete="email"
                 value={form.email}
                 onChange={handleChange}

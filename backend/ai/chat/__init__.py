@@ -9,9 +9,6 @@ configured for transcription and summarization.
 from groq import Groq
 from flask import current_app
 
-# Keep the raw transcript bounded so a very long meeting doesn't blow the
-# context window or the per-request cost. The summary/key points/decisions
-# already give the model a condensed view; this is just supporting detail.
 MAX_TRANSCRIPT_CHARS = 20000
 
 SYSTEM_PROMPT_TEMPLATE = """You are Clario, an assistant that answers questions about ONE specific meeting.

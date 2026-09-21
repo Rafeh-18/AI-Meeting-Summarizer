@@ -4,62 +4,6 @@ backend/ai/embeddings/embedder.py
 Turns a meeting transcript into searchable chunks so you can build the
 "Chat with meeting" (RAG) feature from the README roadmap, without paying
 for a hosted embeddings API.
-
-WHY NOT JUST USE OPENAI FOR EMBEDDINGS?
-You could (text-embedding-3-small is cheap), but this module runs
-embeddings locally instead, which is free and keeps the "chat with
-meeting" feature from adding a per-message API cost on top of the
-transcription + summarization calls you already pay for. Fits your
-cost-conscious, manual-processing approach.
-
-Note: your pushed repo (ai/whisper, ai/summarizer) currently uses the
-OpenAI client with OPENAI_API_KEY, not Groq — I wired answer_with_context
-below against that reality. If/when you migrate to Groq, this function
-doesn't need to change: the Groq Python SDK exposes the same
-`.chat.completions.create(...)` interface, so you'd just swap which
-client instance you pass in.
-
-TWO BACKENDS
-------------
-1. TfidfEmbeddingBackend (default, always safe)
-   - Pure scikit-learn, no torch. No known Python 3.14 wheel issues.
-   - Good enough for single-user, per-meeting semantic search at your scale.
-
-2. SentenceTransformerEmbeddingBackend (optional upgrade)
-   - Better semantic quality, but pulls in `sentence-transformers` -> torch.
-   - Torch's Python 3.14 wheels are still stabilizing as of writing (same
-     category of pain as psycopg2 pre-3.2.13). `get_embedder()` tries this
-     backend ONLY if you explicitly ask for it, and falls back to TF-IDF
-     automatically if the import or model load fails for any reason —
-     so a torch/3.14 mismatch degrades gracefully instead of crashing.
-
-INTEGRATION SKETCH
--------------------
-Matches your real Meeting model (transcript lives in `transcript_text`,
-a plain string — no diarization yet). Suggested usage from a controller:
-
-    from openai import OpenAI
-    from flask import current_app
-    from ai.embeddings import MeetingKnowledgeBase, answer_with_context, get_embedder
-
-    kb = MeetingKnowledgeBase(embedder=get_embedder())
-    kb.build(meeting.transcript_text)
-    relevant_chunks = kb.query(user_question, top_k=4)
-
-    client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
-    answer = answer_with_context(user_question, relevant_chunks, client)
-
-See app/controllers/ai_controller.py for a ready-to-paste
-`chat_with_meeting()` that does exactly this.
-
-This rebuilds the TF-IDF index on every call rather than persisting it —
-fine at your current scale (a one-hour transcript indexes in well under a
-second) and avoids needing a new DB table or Alembic migration before
-that's set up. If chat volume grows, cache `kb` per meeting_id in memory
-(single-process dev) or move to a persisted MeetingEmbedding row later.
-
-Install: pip install scikit-learn numpy
-Optional upgrade: pip install sentence-transformers  (pulls in torch)
 """
 
 from __future__ import annotations

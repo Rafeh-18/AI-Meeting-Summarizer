@@ -41,15 +41,7 @@ MARGIN = 0.75 * inch
 # ---------------------------------------------------------------------------
 # Text sanitization
 # ---------------------------------------------------------------------------
-# ReportLab's base-14 fonts (Helvetica) only cover WinAnsi/Latin-1 glyphs, so
-# stray Unicode punctuation (smart quotes, dashes, ellipsis, emoji like the
-# warning sign) renders as a "tofu" box (■) or — if dropped naively — can
-# silently delete the character and glue two words together ("election-day"
-# -> "electionday"). On top of that, Paragraph() parses a small XML-like
-# markup, so a raw "&" (e.g. "MD&A") gets misread as the start of an entity
-# and comes out mangled ("MD&A;"). This normalizes and escapes any LLM/user
-# text before it reaches a Paragraph, using Unicode category checks so it
-# isn't limited to one hand-picked list of characters.
+
 _UNICODE_REPLACEMENTS = {
     "\u2026": "...",  # … ellipsis
     "\u26a0": "[!]",  # ⚠ warning sign
